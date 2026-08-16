@@ -70,11 +70,12 @@ label{font-size:13px;color:#667085}
 <header>
   <div>
     <h1>My Money</h1>
-    <div class="period" id="periodLabel"></div>
+    <div class="period" id="periodLabel"></div><div class="period" id="scheduleLabel"></div>
   </div>
   <div class="top-actions">
+    <button class="secondary" onclick="editPaySchedule()">Pay Schedule</button>
     <button class="secondary" onclick="editPaycheck()">Edit Paycheck</button>
-    <button class="secondary" onclick="newPeriod()">New Pay Period</button>
+    
   </div>
 </header>
 
@@ -264,7 +265,8 @@ document.getElementById("recurringCategory").innerHTML=categoryOptions();
 let data = JSON.parse(localStorage.getItem(KEY) || "null") || {
   current:{start:"2026-08-14",end:"2026-08-27",startingBalance:2800,transactions:[]},
   recurring:[],
-  history:[]
+  history:[],
+  paySchedule:{anchor:"2026-08-20",frequencyDays:14}
 };
 
 function money(n){return "$"+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
@@ -422,6 +424,44 @@ function deleteRecurring(id){
   data.recurring=data.recurring.filter(x=>x.id!==id);
   save(); render();
 }
+
+function ensurePaySchedule(){
+  if(!data.paySchedule)data.paySchedule={anchor:"2026-08-20",frequencyDays:14};
+}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
+function periodForDate(target){
+  ensurePaySchedule();
+  const anchor=parseISODate(data.paySchedule.anchor);
+  const t=new Date(target.getFullYear(),target.getMonth(),target.getDate());
+  const diff=Math.floor((t-anchor)/86400000);
+  const k=Math.floor(diff/14);
+  const start=addDays(anchor,k*14),end=addDays(start,13);
+  return {start:localISO(start),end:localISO(end)};
+}
+function editPaySchedule(){
+  ensurePaySchedule();
+  const v=prompt("Enter a known payday (YYYY-MM-DD). The schedule repeats every 14 days. Existing history stays unchanged.",data.paySchedule.anchor);
+  if(v===null)return;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(v)){alert("Use YYYY-MM-DD, for example 2026-08-20.");return}
+  data.paySchedule.anchor=v;
+  const p=periodForDate(new Date());
+  data.current.start=p.start; data.current.end=p.end;
+  save();render();
+}
+function syncPayPeriod(){
+  ensurePaySchedule();
+  const p=periodForDate(new Date());
+  if(data.current.start===p.start && data.current.end===p.end)return;
+  const old=JSON.parse(JSON.stringify(data.current));
+  if((old.transactions.length||old.startingBalance>0)&&!data.history.some(x=>x.start===old.start&&x.end===old.end))data.history.push(old);
+  data.current={start:p.start,end:p.end,startingBalance:0,transactions:[]};
+  save();
+  setTimeout(()=>{
+    const a=Number(prompt(`New pay period: ${p.start} – ${p.end}. Enter your paycheck amount:`,""));
+    if(a>0){data.current.startingBalance=a;save();render()}
+  },100);
+}
+
 function editPaycheck(){
   const c=data.current;
   const amount=Number(prompt("Enter the paycheck amount for this pay period:",String(c.startingBalance)));
@@ -482,6 +522,7 @@ function render(){
   const bal=currentBalance(c);
 
   periodLabel.textContent=`Pay Period: ${c.start} – ${c.end}`;
+  scheduleLabel.textContent=`Every 2 weeks · reference payday ${data.paySchedule.anchor}`;
   balance.textContent=money(bal);
   startingPaycheck.textContent=money(c.startingBalance);
   document.getElementById("spent").textContent=money(spent);
@@ -579,9 +620,11 @@ function render(){
     : '<div class="muted">Completed pay periods will appear here.</div>';
 }
 
+ensurePaySchedule();
 normalizeRecurring();
 toggleRecurringDueFields();
 save();
+syncPayPeriod();
 render();
 </script>
 </body>
