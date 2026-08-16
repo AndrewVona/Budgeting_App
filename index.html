@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Money</title>
+  <style>
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f6f8;
+      color: #1d2430
+    }
+
+    .app {
+      max-width: 1120px;
+      margin: auto;
+      padding: 28px 20px
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px
+    }
+
+    h2 {
+      font-size: 18px;
+      margin: 0 0 14px
+    }
+
+    .period {
+      font-size: 14px;
+      color: #667085
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .04)
+    }
+
+    .balance {
+      font-size: 42px;
+      font-weight: 700;
+      margin: 8px 0
+    }
+
+    .muted {
+      color: #667085
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px
+    }
+
+    .grid.three {
+      grid-template-columns: repeat(3, 1fr)
+    }
+
+    .stat {
+      font-size: 24px;
+      font-weight: 700;
+      margin-top: 6px
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #202938;
+      color: white
+    }
+
+    button.secondary {
+      background: #eef0f3;
+      color: #202938
+    }
+
+    button.danger {
+      background: #f3f4f6;
+      color: #9b1c1c
+    }
+
+    button.small {
+      padding: 7px 10px;
+      font-size: 12px
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d7dce2;
+      border-radius: 9px;
+      margin-top: 6px;
+      font-size: 15px;
+      background: white
+    }
+
+    label {
+      font-size: 13px;
+      color: #667085
+    }
+
+    .formrow {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px
+    }
+
+    .formrow.three {
+      grid-template-columns: 1fr 1fr 1fr
+    }
+
+    .formrow.full {
+      grid-template-columns: 1fr
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px
+    }
+
+    .categories {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px
+    }
+
+    .cat {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee
+    }
+
+    .bar {
+      height: 8px;
+      background: #e9ecf0;
+      border-radius: 99px;
+      margin-top: 5px;
+      overflow: hidden;
+      min-width: 170px
+    }
+
+    .bar>span {
+      display: block;
+      height: 100%
+    }
+
+    .tx {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee
+    }
+
+    .tx small,
+    .smalltext {
+      color: #667085
+    }
+
+    .txactions {
+      display: flex;
+      gap: 6px;
+      align-items: center
+    }
+
+    .history {
+      margin-top: 18px
+    }
+
+    .periodrow {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 0;
+      border-bottom: 1px solid #eee
+    }
+
+    .recurring-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+      align-items: center
+    }
+
+    .recurring-info {
+      flex: 1
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: white;
+      margin-top: 5px
+    }
+
+    .comparetable {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px
+    }
+
+    .comparetable th,
+    .comparetable td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #eee;
+      text-align: right
+    }
+
+    .comparetable th:first-child,
+    .comparetable td:first-child {
+      text-align: left
+    }
+
+    .sectiongap {
+      margin-top: 18px
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap
+    }
+
+    .chartwrap {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      flex-wrap: wrap
+    }
+
+    .donut {
+      width: 210px;
+      height: 210px;
+      border-radius: 50%;
+      position: relative;
+      flex: 0 0 auto
+    }
+
+    .donut::after {
+      content: "";
+      position: absolute;
+      inset: 38px;
+      background: white;
+      border-radius: 50%
+    }
+
+    .donut-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 2;
+      text-align: center
+    }
+
+    .legend {
+      flex: 1;
+      min-width: 220px
+    }
+
+    .legend-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px 0
+    }
+
+    .legend-left {
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%
+    }
+
+    .category-chip {
+      display: inline-block;
+      padding: 3px 7px;
+      border-radius: 999px;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 4px
+    }
+
+    @media(max-width:800px) {
+
+      .grid,
+      .grid.three,
+      .formrow,
+      .formrow.three {
+        grid-template-columns: 1fr
+      }
+
+      .app {
+        padding: 18px 14px
+      }
+
+      header {
+        align-items: flex-start;
+        flex-direction: column
+      }
+
+      .balance {
+        font-size: 36px
+      }
+
+      .bar {
+        min-width: 120px
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>My Money</h1>
+        <div class="period" id="periodLabel"></div>
+      </div>
+      <div class="top-actions">
+        <button class="secondary" onclick="editPaycheck()">Edit Paycheck</button>
+        <button class="secondary" onclick="newPeriod()">New Pay Period</button>
+      </div>
+    </header>
+
+    <div class="grid three">
+      <section class="card">
+        <div class="muted">Current Balance</div>
+        <div class="balance" id="balance">$0.00</div>
+        <div class="muted">Starting paycheck: <strong id="startingPaycheck">$0.00</strong></div>
+      </section>
+      <section class="card">
+        <div class="muted">Spent This Period</div>
+        <div class="stat" id="spent">$0.00</div>
+      </section>
+      <section class="card">
+        <div class="muted">Additional Income This Period</div>
+        <div class="stat" id="income">$0.00</div>
+      </section>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Add Purchase</h2>
+        <div class="formrow">
+          <div>
+            <label>Amount</label>
+            <input id="purchaseAmount" type="number" step="0.01" placeholder="25.00">
+          </div>
+          <div>
+            <label>Category</label>
+            <select id="purchaseCategory"></select>
+          </div>
+        </div>
+        <div class="formrow full" style="margin-top:10px">
+          <div>
+            <label>Note (optional)</label>
+            <input id="purchaseNote" placeholder="Lunch, Walmart, oil change...">
+          </div>
+        </div>
+        <div class="actions"><button onclick="addPurchase()">Add Purchase</button></div>
+      </section>
+
+      <section class="card">
+        <h2>Add Income</h2>
+        <div class="formrow">
+          <div>
+            <label>Amount</label>
+            <input id="incomeAmount" type="number" step="0.01" placeholder="500.00">
+          </div>
+          <div>
+            <label>Type</label>
+            <select id="incomeType">
+              <option>Paycheck</option>
+              <option>Bonus</option>
+              <option>Reimbursement</option>
+              <option>Side Income</option>
+              <option>Other Income</option>
+            </select>
+          </div>
+        </div>
+        <div class="formrow full" style="margin-top:10px">
+          <div>
+            <label>Note (optional)</label>
+            <input id="incomeNote" placeholder="Overtime, refund...">
+          </div>
+        </div>
+        <div class="actions"><button onclick="addIncome()">Add Income</button></div>
+      </section>
+    </div>
+
+    <section class="card" style="margin-bottom:18px">
+      <h2>Spending Overview</h2>
+      <div class="chartwrap">
+        <div style="position:relative">
+          <div class="donut" id="donut"></div>
+          <div class="donut-center">
+            <div class="muted" style="font-size:12px">Spent</div>
+            <strong id="donutTotal">$0.00</strong>
+          </div>
+        </div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Spending by Category</h2>
+        <div class="categories" id="categories"></div>
+      </section>
+
+      <section class="card">
+        <h2>Recent Activity</h2>
+        <div id="transactions"></div>
+      </section>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Recurring Expenses</h2>
+        <div class="formrow three">
+          <div><label>Name</label><input id="recurringName" placeholder="Car insurance"></div>
+          <div><label>Amount</label><input id="recurringAmount" type="number" step="0.01" placeholder="145.00"></div>
+          <div><label>Category</label><select id="recurringCategory"></select></div>
+        </div>
+        <div class="actions"><button onclick="addRecurring()">Add Recurring Expense</button></div>
+        <div id="recurringList" class="sectiongap"></div>
+      </section>
+
+      <section class="card">
+        <h2>Pay Period Comparison</h2>
+        <div id="comparison" class="muted">Complete one pay period to see a comparison.</div>
+      </section>
+    </div>
+
+    <section class="card history">
+      <h2>History</h2>
+      <div id="history"></div>
+    </section>
+  </div>
+
+  <script>
+    const KEY = "my-money-prototype-v3";
+
+    const categoryGroups = {
+      "Everyday": ["Food", "Groceries", "Shopping", "Entertainment"],
+      "Bills": ["Rent/Mortgage", "Electricity", "Internet", "Phone", "Subscriptions", "General Insurance"],
+      "Auto": ["Gas", "Car Insurance", "Car Loan", "Maintenance", "Registration", "Repairs", "Parking/Tolls", "Other Auto"],
+      "Loans": ["Student Loan", "Personal Loan", "Other Loan"],
+      "Other": ["Healthcare", "Transportation", "Other"]
+    };
+
+    const colors = {
+      "Food": "#43A047", "Groceries": "#66BB6A", "Shopping": "#FB8C00", "Entertainment": "#EC407A",
+      "Rent/Mortgage": "#7E57C2", "Electricity": "#FBC02D", "Internet": "#26A69A", "Phone": "#29B6F6",
+      "Subscriptions": "#AB47BC", "General Insurance": "#8D6E63",
+      "Gas": "#42A5F5", "Car Insurance": "#1E88E5", "Car Loan": "#1565C0", "Maintenance": "#5C6BC0",
+      "Registration": "#7986CB", "Repairs": "#3949AB", "Parking/Tolls": "#64B5F6", "Other Auto": "#90CAF9",
+      "Student Loan": "#E53935", "Personal Loan": "#EF5350", "Other Loan": "#E57373",
+      "Healthcare": "#26C6DA", "Transportation": "#78909C", "Other": "#9E9E9E"
+    };
+
+    function categoryOptions() {
+      let html = "";
+      for (const [group, items] of Object.entries(categoryGroups)) {
+        html += `<optgroup label="${group}">`;
+        items.forEach(i => html += `<option>${i}</option>`);
+        html += `</optgroup>`;
+      }
+      return html;
+    }
+    document.getElementById("purchaseCategory").innerHTML = categoryOptions();
+    document.getElementById("recurringCategory").innerHTML = categoryOptions();
+
+    let data = JSON.parse(localStorage.getItem(KEY) || "null") || {
+      current: { start: "2026-08-14", end: "2026-08-27", startingBalance: 2800, transactions: [] },
+      recurring: [],
+      history: []
+    };
+
+    function money(n) { return "$" + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+    function save() { localStorage.setItem(KEY, JSON.stringify(data)) }
+    function totalExpenses(period) { return period.transactions.filter(t => t.kind === "expense").reduce((s, t) => s + t.amount, 0) }
+    function addedIncome(period) { return period.transactions.filter(t => t.kind === "income").reduce((s, t) => s + t.amount, 0) }
+    function currentBalance(period) { return period.startingBalance + addedIncome(period) - totalExpenses(period) }
+    function dateStr() { return new Date().toLocaleDateString() }
+
+    function addPurchase() {
+      const amount = Number(document.getElementById("purchaseAmount").value);
+      if (!amount || amount <= 0) { alert("Enter a purchase amount."); return }
+      data.current.transactions.push({ id: Date.now(), kind: "expense", amount, category: purchaseCategory.value, note: purchaseNote.value.trim(), date: dateStr() });
+      purchaseAmount.value = ""; purchaseNote.value = ""; save(); render();
+    }
+    function addIncome() {
+      const amount = Number(document.getElementById("incomeAmount").value);
+      if (!amount || amount <= 0) { alert("Enter an income amount."); return }
+      data.current.transactions.push({ id: Date.now(), kind: "income", amount, category: incomeType.value, note: incomeNote.value.trim(), date: dateStr() });
+      incomeAmount.value = ""; incomeNote.value = ""; save(); render();
+    }
+    function editTransaction(id) {
+      const t = data.current.transactions.find(x => x.id === id); if (!t) return;
+      const newAmount = Number(prompt("Amount:", t.amount)); if (!newAmount || newAmount <= 0) return;
+      const newNote = prompt("Note:", t.note || "");
+      t.amount = newAmount; if (newNote !== null) t.note = newNote; save(); render();
+    }
+    function deleteTransaction(id) {
+      if (!confirm("Delete this entry?")) return;
+      data.current.transactions = data.current.transactions.filter(x => x.id !== id); save(); render();
+    }
+    function addRecurring() {
+      const name = recurringName.value.trim(), amount = Number(recurringAmount.value), category = recurringCategory.value;
+      if (!name || !amount || amount <= 0) { alert("Enter a name and amount."); return }
+      data.recurring.push({ id: Date.now(), name, amount, category });
+      recurringName.value = ""; recurringAmount.value = ""; save(); render();
+    }
+    function markRecurringPaid(id) {
+      const r = data.recurring.find(x => x.id === id); if (!r) return;
+      data.current.transactions.push({ id: Date.now(), kind: "expense", amount: r.amount, category: r.category, note: r.name, date: dateStr() });
+      save(); render();
+    }
+    function deleteRecurring(id) {
+      if (!confirm("Remove this recurring expense?")) return;
+      data.recurring = data.recurring.filter(x => x.id !== id); save(); render();
+    }
+    function editPaycheck() {
+      const c = data.current;
+      const amount = Number(prompt("Enter the paycheck amount for this pay period:", String(c.startingBalance)));
+      if (!amount || amount <= 0) return;
+      c.startingBalance = amount;
+      save();
+      render();
+    }
+
+    function newPeriod() {
+      const c = data.current;
+      if (!confirm("Start a new pay period? The current one will be saved to History.")) return;
+      const amount = Number(prompt("Enter your new paycheck amount:", String(c.startingBalance)));
+      if (!amount || amount <= 0) return;
+      data.history.push(JSON.parse(JSON.stringify(c)));
+      const start = new Date(), end = new Date(start); end.setDate(end.getDate() + 13);
+      const iso = d => d.toISOString().slice(0, 10);
+      data.current = { start: iso(start), end: iso(end), startingBalance: amount, transactions: [] };
+      save(); render();
+    }
+
+    function comparisonHtml() {
+      if (!data.history.length) return '<div class="muted">Complete one pay period to see a comparison.</div>';
+      const prev = data.history[data.history.length - 1], cur = data.current;
+      const rows = [["Starting", cur.startingBalance, prev.startingBalance], ["Extra Income", addedIncome(cur), addedIncome(prev)], ["Spent", totalExpenses(cur), totalExpenses(prev)], ["Remaining", currentBalance(cur), currentBalance(prev)]];
+      let html = '<table class="comparetable"><tr><th></th><th>Current</th><th>Previous</th></tr>';
+      rows.forEach(r => html += `<tr><td>${r[0]}</td><td>${money(r[1])}</td><td>${money(r[2])}</td></tr>`);
+      html += '</table>';
+      return html;
+    }
+
+    function renderDonut(totals) {
+      const entries = Object.entries(totals).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+      const total = entries.reduce((s, [, v]) => s + v, 0);
+      donutTotal.textContent = money(total);
+      if (!entries.length) {
+        donut.style.background = "#e5e7eb";
+        legend.innerHTML = '<div class="muted">No spending yet.</div>';
+        return;
+      }
+      let acc = 0, parts = [];
+      entries.forEach(([cat, val]) => {
+        const start = acc / total * 360; acc += val; const end = acc / total * 360;
+        parts.push(`${colors[cat] || "#9E9E9E"} ${start}deg ${end}deg`);
+      });
+      donut.style.background = `conic-gradient(${parts.join(",")})`;
+      legend.innerHTML = entries.map(([cat, val]) => `
+    <div class="legend-row">
+      <div class="legend-left"><span class="dot" style="background:${colors[cat] || "#9E9E9E"}"></span><span>${cat}</span></div>
+      <strong>${money(val)}</strong>
+    </div>`).join("");
+    }
+
+    function render() {
+      const c = data.current, spent = totalExpenses(c), income = addedIncome(c), bal = currentBalance(c);
+      periodLabel.textContent = `Pay Period: ${c.start} – ${c.end}`;
+      balance.textContent = money(bal); startingPaycheck.textContent = money(c.startingBalance); document.getElementById("spent").textContent = money(spent); document.getElementById("income").textContent = money(income);
+
+      const totals = {};
+      c.transactions.filter(t => t.kind === "expense").forEach(t => totals[t.category] = (totals[t.category] || 0) + t.amount);
+      renderDonut(totals);
+
+      const max = Math.max(...Object.values(totals), 1);
+      categories.innerHTML = Object.keys(totals).length
+        ? Object.entries(totals).sort((a, b) => b[1] - a[1]).map(([k, v]) => `
+      <div class="cat">
+        <div style="flex:1">
+          <strong>${k}</strong>
+          <div class="bar"><span style="width:${v / max * 100}%;background:${colors[k] || "#9E9E9E"}"></span></div>
+        </div>
+        <strong>${money(v)}</strong>
+      </div>`).join("")
+        : '<div class="muted">No spending yet.</div>';
+
+      transactions.innerHTML = c.transactions.length
+        ? [...c.transactions].reverse().slice(0, 12).map(t => {
+          const bg = t.kind === "expense" ? (colors[t.category] || "#9E9E9E") : "#2E7D32";
+          return `<div class="tx">
+          <div>
+            <strong>${t.kind === "income" ? "+" : "-"}${money(t.amount)}</strong><br>
+            <span class="category-chip" style="background:${bg}">${t.category}</span>
+            ${t.note ? `<br><small>${t.note} · ${t.date}</small>` : `<br><small>${t.date}</small>`}
+          </div>
+          <div class="txactions">
+            <button class="secondary small" onclick="editTransaction(${t.id})">Edit</button>
+            <button class="danger small" onclick="deleteTransaction(${t.id})">Delete</button>
+          </div>
+        </div>`;
+        }).join("")
+        : '<div class="muted">No activity yet.</div>';
+
+      recurringList.innerHTML = data.recurring.length
+        ? data.recurring.map(r => `
+      <div class="recurring-item">
+        <div class="recurring-info">
+          <strong>${r.name}</strong> — ${money(r.amount)}
+          <div class="badge" style="background:${colors[r.category] || "#9E9E9E"}">${r.category}</div>
+        </div>
+        <div class="txactions">
+          <button class="small" onclick="markRecurringPaid(${r.id})">Paid</button>
+          <button class="danger small" onclick="deleteRecurring(${r.id})">Remove</button>
+        </div>
+      </div>`).join("")
+        : '<div class="muted">No recurring expenses saved yet.</div>';
+
+      comparison.innerHTML = comparisonHtml();
+
+      history.innerHTML = data.history.length
+        ? [...data.history].reverse().map(p => `
+      <div class="periodrow">
+        <div>
+          <strong>${p.start} – ${p.end}</strong><br>
+          <small>${p.transactions.filter(t => t.kind === "expense").length} purchases · ${p.transactions.filter(t => t.kind === "income").length} income entries</small>
+        </div>
+        <div style="text-align:right">
+          <strong>Spent ${money(totalExpenses(p))}</strong><br>
+          <small>Left ${money(currentBalance(p))}</small>
+        </div>
+      </div>`).join("")
+        : '<div class="muted">Completed pay periods will appear here.</div>';
+    }
+    render();
+  </script>
+</body>
+
+</html>
