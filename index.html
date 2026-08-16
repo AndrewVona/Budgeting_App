@@ -17,6 +17,7 @@ h2{font-size:18px;margin:0 0 14px}
 .muted{color:#667085}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
 .grid.three{grid-template-columns:repeat(3,1fr)}
+.topstats{grid-template-columns:repeat(4,1fr)}
 .stat{font-size:24px;font-weight:700;margin-top:6px}
 button{border:0;border-radius:10px;padding:12px 16px;font-weight:600;cursor:pointer;background:#202938;color:white}
 button.secondary{background:#eef0f3;color:#202938}
@@ -54,9 +55,9 @@ label{font-size:13px;color:#667085}
 .legend-left{display:flex;align-items:center;gap:8px}
 .dot{width:10px;height:10px;border-radius:50%}
 .category-chip{display:inline-block;padding:3px 7px;border-radius:999px;color:white;font-size:11px;font-weight:700;margin-top:4px}
-@media(max-width:900px){.grid[style*="repeat(4"]{grid-template-columns:1fr 1fr !important}}
+@media(max-width:900px){.topstats{grid-template-columns:1fr 1fr}}
 @media(max-width:800px){
-  .grid,.grid.three,.formrow,.formrow.three,.grid[style*="repeat(4"]{grid-template-columns:1fr !important}
+  .grid,.grid.three,.topstats,.formrow,.formrow.three{grid-template-columns:1fr}
   .app{padding:18px 14px}
   header{align-items:flex-start;flex-direction:column}
   .balance{font-size:36px}
@@ -77,7 +78,7 @@ label{font-size:13px;color:#667085}
   </div>
 </header>
 
-<div class="grid" style="grid-template-columns:repeat(4,1fr)">
+<div class="grid topstats">
   <section class="card">
     <div class="muted">Current Balance</div>
     <div class="balance" id="balance">$0.00</div>
@@ -90,6 +91,11 @@ label{font-size:13px;color:#667085}
   <section class="card">
     <div class="muted">Additional Income This Period</div>
     <div class="stat" id="income">$0.00</div>
+  </section>
+  <section class="card">
+    <div class="muted">After Upcoming Bills</div>
+    <div class="stat" id="afterBills">$0.00</div>
+    <div class="muted">Upcoming: <strong id="upcomingTotal">$0.00</strong></div>
   </section>
 </div>
 
@@ -173,12 +179,41 @@ label{font-size:13px;color:#667085}
 <section class="card">
   <h2>Recurring Expenses</h2>
   <div class="formrow three">
-    <div><label>Name</label><input id="recurringName" placeholder="Car insurance"></div>
-    <div><label>Amount</label><input id="recurringAmount" type="number" step="0.01" placeholder="145.00"></div>
+    <div><label>Name</label><input id="recurringName" placeholder="Car loan"></div>
+    <div><label>Amount</label><input id="recurringAmount" type="number" step="0.01" placeholder="425.00"></div>
     <div><label>Category</label><select id="recurringCategory"></select></div>
   </div>
+  <div class="formrow three" style="margin-top:10px">
+    <div>
+      <label>Frequency</label>
+      <select id="recurringFrequency" onchange="toggleRecurringDueFields()">
+        <option value="monthly">Monthly</option>
+        <option value="weekly">Weekly</option>
+        <option value="biweekly">Every 2 Weeks</option>
+        <option value="yearly">Yearly</option>
+        <option value="once">One-Time</option>
+      </select>
+    </div>
+    <div id="monthlyDueWrap">
+      <label>Due Day of Month</label>
+      <input id="recurringDueDay" type="number" min="1" max="31" value="15">
+    </div>
+    <div id="dateDueWrap" style="display:none">
+      <label>First / Due Date</label>
+      <input id="recurringDueDate" type="date">
+    </div>
+  </div>
   <div class="actions"><button onclick="addRecurring()">Add Recurring Expense</button></div>
-  <div id="recurringList" class="sectiongap"></div>
+
+  <div class="sectiongap">
+    <strong>Upcoming This Pay Period</strong>
+    <div id="upcomingBills" style="margin-top:8px"></div>
+  </div>
+
+  <div class="sectiongap">
+    <strong>All Recurring Expenses</strong>
+    <div id="recurringList" style="margin-top:8px"></div>
+  </div>
 </section>
 
 <section class="card">
@@ -266,52 +301,60 @@ function parseISODate(s){
   const [y,m,d]=s.split("-").map(Number);
   return new Date(y,m-1,d);
 }
+function localISO(d){
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const day=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
 function formatShortDate(d){
   return d.toLocaleDateString(undefined,{month:"short",day:"numeric"});
-}
-function daysBetween(a,b){
-  const ms=86400000;
-  const aa=new Date(a.getFullYear(),a.getMonth(),a.getDate());
-  const bb=new Date(b.getFullYear(),b.getMonth(),b.getDate());
-  return Math.floor((bb-aa)/ms);
 }
 function toggleRecurringDueFields(){
   const f=document.getElementById("recurringFrequency").value;
   document.getElementById("monthlyDueWrap").style.display=f==="monthly"?"block":"none";
   document.getElementById("dateDueWrap").style.display=f==="monthly"?"none":"block";
 }
-function getOccurrencesInPeriod(r, period){
-  const start=parseISODate(period.start), end=parseISODate(period.end), hits=[];
+function normalizeRecurring(){
+  data.recurring.forEach(r=>{
+    if(!r.frequency){
+      r.frequency="monthly";
+      r.dueDay=r.dueDay||1;
+      r.dueDate=null;
+    }
+  });
+}
+function getOccurrencesInPeriod(r,period){
+  const start=parseISODate(period.start);
+  const end=parseISODate(period.end);
+  const hits=[];
+
   if(r.frequency==="monthly"){
     let cursor=new Date(start.getFullYear(),start.getMonth(),1);
-    const last=new Date(end.getFullYear(),end.getMonth(),1);
-    while(cursor<=last){
+    const lastMonth=new Date(end.getFullYear(),end.getMonth(),1);
+    while(cursor<=lastMonth){
       const maxDay=new Date(cursor.getFullYear(),cursor.getMonth()+1,0).getDate();
-      const dt=new Date(cursor.getFullYear(),cursor.getMonth(),Math.min(r.dueDay,maxDay));
-      if(dt>=start && dt<=end) hits.push(dt);
+      const due=new Date(cursor.getFullYear(),cursor.getMonth(),Math.min(Number(r.dueDay)||1,maxDay));
+      if(due>=start && due<=end) hits.push(due);
       cursor=new Date(cursor.getFullYear(),cursor.getMonth()+1,1);
     }
-  } else if(r.frequency==="yearly"){
+  }else if(r.frequency==="yearly"){
     const first=parseISODate(r.dueDate);
-    for(let y=start.getFullYear();y<=end.getFullYear();y++){
-      const dt=new Date(y,first.getMonth(),first.getDate());
-      if(dt>=start && dt<=end) hits.push(dt);
+    for(let year=start.getFullYear();year<=end.getFullYear();year++){
+      const maxDay=new Date(year,first.getMonth()+1,0).getDate();
+      const due=new Date(year,first.getMonth(),Math.min(first.getDate(),maxDay));
+      if(due>=start && due<=end) hits.push(due);
     }
-  } else if(r.frequency==="once"){
-    const dt=parseISODate(r.dueDate);
-    if(dt>=start && dt<=end) hits.push(dt);
-  } else {
-    const first=parseISODate(r.dueDate);
+  }else if(r.frequency==="once"){
+    const due=parseISODate(r.dueDate);
+    if(due>=start && due<=end) hits.push(due);
+  }else{
     const step=r.frequency==="weekly"?7:14;
-    let dt=new Date(first);
-    if(dt<start){
-      const diff=daysBetween(dt,start);
-      dt.setDate(dt.getDate()+Math.floor(diff/step)*step);
-      while(dt<start) dt.setDate(dt.getDate()+step);
-    }
-    while(dt<=end){
-      hits.push(new Date(dt));
-      dt.setDate(dt.getDate()+step);
+    let due=parseISODate(r.dueDate);
+    while(due<start) due.setDate(due.getDate()+step);
+    while(due<=end){
+      hits.push(new Date(due));
+      due.setDate(due.getDate()+step);
     }
   }
   return hits;
@@ -320,10 +363,10 @@ function upcomingBillsForCurrent(){
   const bills=[];
   data.recurring.forEach(r=>{
     getOccurrencesInPeriod(r,data.current).forEach(dt=>{
-      const iso=dt.toISOString().slice(0,10);
-      const key=`${r.id}|${iso}`;
-      const paid=data.current.transactions.some(t=>t.recurringOccurrenceKey===key);
-      if(!paid) bills.push({r,dt,iso,key});
+      const dueISO=localISO(dt);
+      const key=`${r.id}|${dueISO}`;
+      const alreadyPaid=data.current.transactions.some(t=>t.recurringOccurrenceKey===key);
+      if(!alreadyPaid) bills.push({r,dt,dueISO,key});
     });
   });
   return bills.sort((a,b)=>a.dt-b.dt);
@@ -338,38 +381,54 @@ function addRecurring(){
   const dueDate=document.getElementById("recurringDueDate").value;
 
   if(!name || !amount || amount<=0){alert("Enter a name and amount.");return}
-  if(frequency==="monthly" && (!dueDay || dueDay<1 || dueDay>31)){alert("Enter a valid due day.");return}
-  if(frequency!=="monthly" && !dueDate){alert("Choose a first or due date.");return}
+  if(frequency==="monthly" && (!dueDay || dueDay<1 || dueDay>31)){
+    alert("Enter a due day from 1 to 31."); return;
+  }
+  if(frequency!=="monthly" && !dueDate){
+    alert("Choose a first or due date."); return;
+  }
 
   data.recurring.push({
-    id:Date.now(),name,amount,category,frequency,
+    id:Date.now(), name, amount, category, frequency,
     dueDay:frequency==="monthly"?dueDay:null,
     dueDate:frequency==="monthly"?null:dueDate
   });
 
   document.getElementById("recurringName").value="";
   document.getElementById("recurringAmount").value="";
-  save();render();
+  save(); render();
 }
 
-function markRecurringPaid(id, occurrenceDate){
+function markRecurringPaid(id,dueISO){
   const r=data.recurring.find(x=>x.id===id);
   if(!r)return;
-  const key=`${id}|${occurrenceDate}`;
+  const key=`${id}|${dueISO}`;
   if(data.current.transactions.some(t=>t.recurringOccurrenceKey===key))return;
 
   data.current.transactions.push({
-    id:Date.now(),kind:"expense",amount:r.amount,category:r.category,
-    note:r.name,date:new Date().toLocaleDateString(),recurringOccurrenceKey:key
+    id:Date.now(),
+    kind:"expense",
+    amount:r.amount,
+    category:r.category,
+    note:r.name,
+    date:new Date().toLocaleDateString(),
+    recurringOccurrenceKey:key
   });
-
-  save();render();
+  save(); render();
 }
 
 function deleteRecurring(id){
   if(!confirm("Remove this recurring expense?"))return;
   data.recurring=data.recurring.filter(x=>x.id!==id);
-  save();render();
+  save(); render();
+}
+function editPaycheck(){
+  const c=data.current;
+  const amount=Number(prompt("Enter the paycheck amount for this pay period:",String(c.startingBalance)));
+  if(!amount || amount<=0)return;
+  c.startingBalance=amount;
+  save();
+  render();
 }
 
 function newPeriod(){
@@ -417,12 +476,21 @@ function renderDonut(totals){
 }
 
 function render(){
-  const c=data.current, spent=totalExpenses(c), income=addedIncome(c), bal=currentBalance(c);
+  const c=data.current;
+  const spent=totalExpenses(c);
+  const income=addedIncome(c);
+  const bal=currentBalance(c);
+
   periodLabel.textContent=`Pay Period: ${c.start} – ${c.end}`;
-  balance.textContent=money(bal); startingPaycheck.textContent=money(c.startingBalance); document.getElementById("spent").textContent=money(spent); document.getElementById("income").textContent=money(income);
+  balance.textContent=money(bal);
+  startingPaycheck.textContent=money(c.startingBalance);
+  document.getElementById("spent").textContent=money(spent);
+  document.getElementById("income").textContent=money(income);
 
   const totals={};
-  c.transactions.filter(t=>t.kind==="expense").forEach(t=>totals[t.category]=(totals[t.category]||0)+t.amount);
+  c.transactions.filter(t=>t.kind==="expense").forEach(t=>{
+    totals[t.category]=(totals[t.category]||0)+t.amount;
+  });
   renderDonut(totals);
 
   const max=Math.max(...Object.values(totals),1);
@@ -454,18 +522,44 @@ function render(){
       }).join("")
     : '<div class="muted">No activity yet.</div>';
 
-  recurringList.innerHTML=data.recurring.length
-    ? data.recurring.map(r=>`
+  const upcoming=upcomingBillsForCurrent();
+  const upcomingSum=upcoming.reduce((sum,x)=>sum+x.r.amount,0);
+  document.getElementById("upcomingTotal").textContent=money(upcomingSum);
+  document.getElementById("afterBills").textContent=money(bal-upcomingSum);
+
+  document.getElementById("upcomingBills").innerHTML=upcoming.length
+    ? upcoming.map(x=>`
       <div class="recurring-item">
         <div class="recurring-info">
-          <strong>${r.name}</strong> — ${money(r.amount)}
-          <div class="badge" style="background:${colors[r.category]||"#9E9E9E"}">${r.category}</div>
+          <strong>${formatShortDate(x.dt)} · ${x.r.name}</strong> — ${money(x.r.amount)}
+          <div class="badge" style="background:${colors[x.r.category]||"#9E9E9E"}">${x.r.category}</div>
         </div>
         <div class="txactions">
-          <button class="small" onclick="markRecurringPaid(${r.id})">Paid</button>
-          <button class="danger small" onclick="deleteRecurring(${r.id})">Remove</button>
+          <button class="small" onclick="markRecurringPaid(${x.r.id},'${x.dueISO}')">Paid</button>
         </div>
       </div>`).join("")
+    : '<div class="muted">No unpaid recurring bills fall in this pay period.</div>';
+
+  document.getElementById("recurringList").innerHTML=data.recurring.length
+    ? data.recurring.map(r=>{
+        let schedule="";
+        if(r.frequency==="monthly") schedule=`Monthly · due day ${r.dueDay}`;
+        else if(r.frequency==="weekly") schedule=`Weekly · starts ${r.dueDate}`;
+        else if(r.frequency==="biweekly") schedule=`Every 2 weeks · starts ${r.dueDate}`;
+        else if(r.frequency==="yearly") schedule=`Yearly · ${r.dueDate}`;
+        else schedule=`One-time · ${r.dueDate}`;
+
+        return `<div class="recurring-item">
+          <div class="recurring-info">
+            <strong>${r.name}</strong> — ${money(r.amount)}<br>
+            <small>${schedule}</small>
+            <div class="badge" style="background:${colors[r.category]||"#9E9E9E"}">${r.category}</div>
+          </div>
+          <div class="txactions">
+            <button class="danger small" onclick="deleteRecurring(${r.id})">Remove</button>
+          </div>
+        </div>`;
+      }).join("")
     : '<div class="muted">No recurring expenses saved yet.</div>';
 
   comparison.innerHTML=comparisonHtml();
@@ -484,46 +578,11 @@ function render(){
       </div>`).join("")
     : '<div class="muted">Completed pay periods will appear here.</div>';
 }
+
+normalizeRecurring();
 toggleRecurringDueFields();
+save();
 render();
 </script>
 </body>
-</html  const upcoming=upcomingBillsForCurrent();
-  const upcomingSum=upcoming.reduce((s,x)=>s+x.r.amount,0);
-  document.getElementById("upcomingTotal").textContent=money(upcomingSum);
-  document.getElementById("afterBills").textContent=money(bal-upcomingSum);
-
-  document.getElementById("upcomingBills").innerHTML=upcoming.length
-    ? upcoming.map(x=>`<div class="recurring-item">
-        <div class="recurring-info">
-          <strong>${formatShortDate(x.dt)} · ${x.r.name}</strong> — ${money(x.r.amount)}
-          <div class="badge">${x.r.category}</div>
-        </div>
-        <div class="txactions">
-          <button class="small" onclick="markRecurringPaid(${x.r.id},'${x.iso}')">Paid</button>
-        </div>
-      </div>`).join("")
-    : '<div class="muted">No unpaid recurring bills fall in this pay period.</div>';
-
-  document.getElementById("recurringList").innerHTML=data.recurring.length
-    ? data.recurring.map(r=>{
-        let schedule="";
-        if(r.frequency==="monthly") schedule=`Monthly · due day ${r.dueDay}`;
-        else if(r.frequency==="weekly") schedule=`Weekly · starts ${r.dueDate}`;
-        else if(r.frequency==="biweekly") schedule=`Every 2 weeks · starts ${r.dueDate}`;
-        else if(r.frequency==="yearly") schedule=`Yearly · ${r.dueDate}`;
-        else schedule=`One-time · ${r.dueDate}`;
-        return `<div class="recurring-item">
-          <div class="recurring-info">
-            <strong>${r.name}</strong> — ${money(r.amount)}<br>
-            <small>${schedule}</small>
-            <div class="badge">${r.category}</div>
-          </div>
-          <div class="txactions">
-            <button class="danger small" onclick="deleteRecurring(${r.id})">Remove</button>
-          </div>
-        </div>`;
-      }).join("")
-    : '<div class="muted">No recurring expenses saved yet.</div>';
-
->
+</html>
